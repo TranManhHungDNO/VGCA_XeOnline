@@ -8,150 +8,141 @@
 
 **Offline PDF Signing • PKCS#11 • USB Token • Chrome Extension • Native Messaging**
 
+Linux Mint • Ubuntu • Python • PDF • PKCS#11
+
 ---
 
-Linux Mint • Ubuntu • PDF • PKCS#11 • Python
-
 </div>
+
+# 📑 Mục lục
+
+- [📖 Giới thiệu](#-giới-thiệu)
+- [✨ Tính năng](#-tính-năng)
+- [📷 Hình ảnh](#-hình-ảnh)
+- [🔐 USB Token hỗ trợ](#-usb-token-hỗ-trợ)
+- [🏗 Kiến trúc](#-kiến-trúc)
+- [📂 Cấu trúc Project](#-cấu-trúc-project)
+- [🚀 Cài đặt](#-cài-đặt)
+- [📚 Tài liệu](#-tài-liệu)
+- [🧪 Kiểm thử](#-kiểm-thử)
+- [🗺 Roadmap](#-roadmap)
+- [📋 Nhật ký thay đổi](#-nhật-ký-thay-đổi)
+- [👨‍💻 Tác giả](#-tác-giả)
 
 ---
 
 # 📖 Giới thiệu
 
-**VGCA XeOnline** là phần mềm ký số PDF dành cho Linux, được phát triển nhằm hỗ trợ ký số tài liệu điện tử bằng USB Token thông qua chuẩn **PKCS#11**.
+VGCA XeOnline là nền tảng ký số PDF dành cho Linux, hỗ trợ USB Token thông qua chuẩn PKCS#11.
 
-Dự án hướng đến việc xây dựng một nền tảng ký số hoạt động hoàn toàn ngoại tuyến (Offline), hỗ trợ nhiều loại USB Token và dễ dàng tích hợp với trình duyệt thông qua Chrome Extension và Native Messaging.
+Mục tiêu của dự án là xây dựng một giải pháp ký số hoạt động hoàn toàn Offline, hỗ trợ nhiều USB Token và dễ dàng triển khai trên Linux Mint, Ubuntu.
 
 ---
 
 # ✨ Tính năng
 
-- ✅ Ký số PDF
-- ✅ Ký hàng loạt (Batch Sign)
+- ✅ Ký PDF
+- ✅ Ký hàng loạt
 - ✅ Đóng dấu PNG
-- ✅ Xem trước PDF
-- ✅ Drag & Drop PDF
+- ✅ Preview PDF
 - ✅ PKCS#11
-- ✅ Tự động nhận USB Token
+- ✅ Drag & Drop
+- 🚧 Multi Token
 - 🚧 Setup Wizard
 - 🚧 Health Check
-- 🚧 Multi Token
-
----
-
-# 🖥 Hệ điều hành hỗ trợ
-
-| Hệ điều hành | Trạng thái |
-|--------------|-----------|
-| Linux Mint 22 | ✅ |
-| Ubuntu 24.04 LTS | ✅ |
-| Debian 12 | 🧪 |
-| Fedora | 🚧 |
-
----
-
-# 🔐 USB Token hỗ trợ
-
-| USB Token | Trạng thái |
-|------------|-----------|
-| Bit4id | ✅ |
-| SafeNet eToken | ✅ |
-| SafeNet IDPrime | 🧪 |
-| VNPT-CA | 🚧 |
-| Viettel-CA | 🚧 |
-| FPT-CA | 🚧 |
 
 ---
 
 # 📷 Hình ảnh
 
-## Môi trường thử nghiệm
+## Giao diện chính
 
-<p align="center">
-<img src="docs/screenshots/hinh1.png">
-</p>
+![](docs/screenshots/hinh1.png)
 
 ---
 
-## Ký số PDF
+## Ký PDF
 
-<p align="center">
-<img src="docs/screenshots/hinh2.png">
-</p>
+![](docs/screenshots/hinh2.png)
 
 ---
 
-## Bit4id PKI Manager
+## Bit4id Manager
 
-<p align="center">
-<img src="docs/screenshots/hinh3.png">
-</p>
+![](docs/screenshots/hinh3.png)
 
 ---
 
-## Thông tin chứng thư số
+## Chứng thư số
 
-<p align="center">
-<img src="docs/screenshots/hinh4.png">
-</p>
+![](docs/screenshots/hinh4.png)
 
 ---
 
-## SafeNet Authentication Client
+## SafeNet Client
 
-<p align="center">
-<img src="docs/screenshots/hinh5.png">
-</p>
+![](docs/screenshots/hinh5.png)
 
 ---
 
-## Hướng dẫn cài Driver
+## Wizard cài Driver
 
-<p align="center">
-<img src="docs/screenshots/hinh6.png">
-</p>
+![](docs/screenshots/hinh6.png)
+
+---
+
+# 🔐 USB Token hỗ trợ
+
+| Token | Driver | Scan | Load Cert | Sign |
+|--------|--------|------|-----------|------|
+| Bit4id | ✅ | ✅ | ✅ | ✅ |
+| SafeNet eToken | ✅ | ✅ | ✅ | 🧪 |
+| SafeNet IDPrime | 🧪 | 🧪 | 🧪 | 🧪 |
+| VNPT | 🚧 | 🚧 | 🚧 | 🚧 |
+| Viettel | 🚧 | 🚧 | 🚧 | 🚧 |
 
 ---
 
 # 🏗 Kiến trúc
 
-```
+```text
 GUI
  │
  ▼
 Core Services
  │
- ├─────────────┐
- ▼             ▼
-PDF Engine   PKCS#11 Engine
-                 │
-                 ▼
-      USB Token Driver
-                 │
-        ┌────────┴────────┐
-        ▼                 ▼
-     Bit4id           SafeNet
+ ├────────────┐
+ ▼            ▼
+PDF      PKCS#11 Engine
+               │
+               ▼
+       Driver Manager
+               │
+     ┌─────────┴─────────┐
+     ▼                   ▼
+ Bit4id             SafeNet
 ```
+
+👉 Xem chi tiết:
+
+- 📄 [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
 # 📂 Cấu trúc Project
 
-```
+```text
 VGCA_XeOnline/
 
 ├── build_deb/
 ├── chrome-extension/
 ├── core/
 ├── docs/
-│   ├── images/
-│   └── screenshots/
 ├── gui/
-├── navite/
+├── native/
 ├── main.py
-├── native_host.py
-├── requirements.txt
-└── README.md
+├── README.md
+└── requirements.txt
 ```
 
 ---
@@ -174,68 +165,74 @@ python main.py
 
 ---
 
-# 🧪 Kiểm thử
-
-Đã kiểm thử thành công:
-
-- Linux Mint 22.3
-- Ubuntu 24.04
-- VMware Workstation
-- Bit4id PKI Manager
-- SafeNet Authentication Client
-- PDF Signing
-- PKCS#11
-
----
-
-# 🛣 Roadmap
-
-### v0.9
-
-- Linux Baseline
-- Bit4id
-- SafeNet
-- PDF Signing
-
-### v0.91
-
-- SafeNet Compatibility
-
-### v0.92
-
-- Multi USB Token
-
-### v0.95
-
-- Setup Wizard
-
-### v1.0
-
-- Stable Release
-
----
-
 # 📚 Tài liệu
 
-```
-docs/
+| Tài liệu | Nội dung |
+|-----------|----------|
+| 📄 [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Kiến trúc hệ thống |
+| 📄 [ROADMAP.md](docs/ROADMAP.md) | Kế hoạch phát triển |
+| 📄 [CHANGELOG.md](docs/CHANGELOG.md) | Nhật ký cập nhật |
+| 📄 [TEST_REPORT.md](docs/TEST_REPORT.md) | Kết quả kiểm thử |
+| 📄 [BUGS.md](docs/BUGS.md) | Danh sách lỗi |
+| 📄 [COMPATIBILITY.md](docs/COMPATIBILITY.md) | Tương thích USB Token |
 
-├── ARCHITECTURE.md
-├── CHANGELOG.md
-├── ROADMAP.md
-├── TEST_REPORT.md
-└── BUGS.md
-```
+---
+
+# 🧪 Kiểm thử
+
+Đã kiểm thử:
+
+- ✅ Linux Mint 22.3
+- ✅ Ubuntu 24.04
+- ✅ VMware Workstation
+- ✅ Bit4id
+- ✅ SafeNet
+- ✅ PDF Signing
+- ✅ PKCS#11
+
+Chi tiết:
+
+➡️ [TEST_REPORT.md](docs/TEST_REPORT.md)
+
+---
+
+# 🗺 Roadmap
+
+| Version | Trạng thái |
+|----------|------------|
+| v0.9 | ✅ Linux Baseline |
+| v0.91 | 🚧 SafeNet |
+| v0.92 | 🚧 Multi Token |
+| v0.95 | 🚧 Setup Wizard |
+| v1.0 | 🎯 Stable |
+
+Chi tiết:
+
+➡️ [ROADMAP.md](docs/ROADMAP.md)
+
+---
+
+# 📋 Nhật ký thay đổi
+
+➡️ [CHANGELOG.md](docs/CHANGELOG.md)
+
+---
+
+# 📈 Thống kê
+
+- Python
+- Tkinter
+- PKCS#11
+- PyHanko
+- PyMuPDF
 
 ---
 
 # 👨‍💻 Tác giả
 
-**Trần Mạnh Hùng**
+**TranManhHungDNO**
 
-Phòng Văn hóa - Xã hội xã Cư Jút, tỉnh Lâm Đồng
-SĐT/ZL: 0944624748 - hungtm.cujut@lamdong.gov.vn
-https://dno.vn 
+VGCA XeOnline Project
 
 ---
 
