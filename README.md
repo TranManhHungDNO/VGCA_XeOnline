@@ -231,9 +231,11 @@ docs/
 
 # 👨‍💻 Tác giả
 
-**Hung Tran**
+**Trần Mạnh Hùng**
 
-VGCA XeOnline Project
+Phòng Văn hóa - Xã hội xã Cư Jút, tỉnh Lâm Đồng
+SĐT/ZL: 0944624748 - hungtm.cujut@lamdong.gov.vn
+https://dno.vn 
 
 ---
 
