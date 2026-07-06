@@ -1,0 +1,7 @@
+Package: vgca-xeonline
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Hung Tran
+Description: VGCA XeOnline Digital Signature Tool

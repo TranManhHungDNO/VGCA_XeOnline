@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=VGCA XeOnline
+Comment=Phần mềm ký số VGCA XeOnline
+Exec=/usr/bin/vgca_xeonline
+Icon=vgca
+Terminal=false
+Categories=Office;Utility;
+StartupNotify=true

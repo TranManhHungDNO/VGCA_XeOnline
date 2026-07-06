@@ -1,0 +1,9 @@
+{
+    "name": "vn.hung.vgca",
+    "description": "VGCA XeOnline Native Host",
+    "path": "/opt/vgca/native_host.py",
+    "type": "stdio",
+    "allowed_origins": [
+        "chrome-extension://REPLACE_EXTENSION_ID/"
+    ]
+}
