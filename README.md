@@ -261,7 +261,7 @@ python main.py
 - Health Check
 
 ### Version 1.0
-
+[![Latest Release](https://img.shields.io/github/v/release/TranManhHungDNO/VGCA_XeOnline)](https://github.com/TranManhHungDNO/VGCA_XeOnline/releases/latest)
 - Stable Release
 - Multi Platform
 - Open API
