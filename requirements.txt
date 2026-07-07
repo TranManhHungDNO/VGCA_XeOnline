@@ -1,0 +1,5 @@
+pyHanko
+PyMuPDF
+Pillow
+python-pkcs11
+pyhanko-certvalidator

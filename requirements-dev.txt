@@ -1,5 +1,0 @@
-pyHanko==0.30.0
-PyMuPDF==1.26.4
-Pillow==11.3.0
-python-pkcs11==0.9.0
-pyhanko-certvalidator==0.29.0

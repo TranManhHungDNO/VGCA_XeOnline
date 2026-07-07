@@ -5,15 +5,20 @@ import shutil
 import tempfile
 import threading
 import webbrowser
-import subprocess
+import sys
 from typing import Optional, List, Tuple
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 from PIL import Image, ImageTk
 import fitz  # PyMuPDF
-import sys
-import os
+
+from core.models import SignPlacement
+from core.config_service import load_config, save_config
+from core.pkcs11_reader import parse_certs
+from core.convert_service import convert_to_pdf
+from core.pdf_sign_service import sign_one_pdf
+
 
 def resource_path(relative_path):
     """Lấy đường dẫn tài nguyên khi chạy source hoặc PyInstaller"""
@@ -23,12 +28,6 @@ def resource_path(relative_path):
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
-from core.models import SignPlacement
-from core.config_service import load_config, save_config
-from core.token_detect import detect_token_type, get_pkcs11_for_token, auto_detect_pkcs11
-from core.pkcs11_reader import parse_certs
-from core.convert_service import convert_to_pdf
-from core.pdf_sign_service import sign_one_pdf
 
 # =====================
 # CONFIG
@@ -48,57 +47,75 @@ ICON_PNG = resource_path("vgca.png")
 SAFENET_URL = "https://knowledge.digicert.com/general-information/how-to-download-safenet-authentication-client"
 BIT4ID_URL = "https://suport.aoc.cat/en-US/article/?servei=tcat&id=KA-06990_manual-de-bit4id-per-a-linux"
 
-# Danh sách "gợi ý" (không gán cứng 1 file, chỉ là candidates để thử)
-TOKEN_PKCS11_MAP = {
-    "bit4id": [
-        "/usr/lib/libbit4xpki.so",
-        "/usr/lib/x86_64-linux-gnu/libbit4xpki.so",
-        "/usr/local/lib/libbit4xpki.so",
-    ],
-    "safenet": [
-        "/usr/lib/libeTPkcs11.so",
-        "/usr/lib/libeToken.so",
-        "/usr/lib/x86_64-linux-gnu/libeTPkcs11.so",
-        "/usr/lib/x86_64-linux-gnu/libeToken.so",
-        "/usr/local/lib/libeTPkcs11.so",
-        "/usr/local/lib/libeToken.so",
-    ],
-    "opensc": [
-        "/usr/lib/opensc-pkcs11.so",
-        "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so",
-        "/usr/local/lib/opensc-pkcs11.so",
-    ],
-}
-
-COMMON_PKCS11_LIBS = [
-    "/usr/lib/libeTPkcs11.so",
-    "/usr/lib/libbit4xpki.so",
-    "/usr/lib/libeToken.so",
-    "/usr/lib/x86_64-linux-gnu/libeTPkcs11.so",
-    "/usr/lib/x86_64-linux-gnu/libbit4xpki.so",
-    "/usr/lib/x86_64-linux-gnu/libeToken.so",
-    "/usr/lib/opensc-pkcs11.so",
-    "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so",
-    "/usr/local/lib/libeTPkcs11.so",
-    "/usr/local/lib/libbit4xpki.so",
-    "/usr/local/lib/libeToken.so",
-    "/usr/local/lib/opensc-pkcs11.so",
-]
-
-TOKEN_DISPLAY = {
-    "bit4id": ("Bit4id (VGCA)", "#2980b9"),
-    "safenet": ("SafeNet / eToken", "#27ae60"),
-    "opensc": ("OpenSC Token", "#8e44ad"),
-    "unknown": ("Không xác định", "#e74c3c"),
-}
-
 CA_KEYWORDS = [
     "rootca", "root ca", "ca phục vụ", "ban cơ yếu",
     "ca g2", "ca g1", "vnpt-ca", "viettel-ca",
     "intermediate", "issuing ca",
 ]
 
-# Overlay boxes
+# =====================
+# PKCS11 PRIORITY
+# =====================
+
+# Ưu tiên theo yêu cầu:
+# 1) Bit4id
+# 2) SafeNet eToken
+# 3) Scan tiếp các lib khác
+PRIORITY_PKCS11 = [
+    # Bit4id
+    "/usr/lib/libbit4ipki.so",
+    "/usr/lib/x86_64-linux-gnu/libbit4ipki.so",
+    "/usr/local/lib/libbit4ipki.so",
+
+    "/usr/lib/libbit4xpki.so",
+    "/usr/lib/x86_64-linux-gnu/libbit4xpki.so",
+    "/usr/local/lib/libbit4xpki.so",
+
+    "/usr/lib/libbit4p11.so",
+    "/usr/lib/x86_64-linux-gnu/libbit4p11.so",
+    "/usr/local/lib/libbit4p11.so",
+
+    # SafeNet
+    "/usr/lib/libeTPkcs11.so",
+    "/usr/lib/x86_64-linux-gnu/libeTPkcs11.so",
+    "/usr/local/lib/libeTPkcs11.so",
+]
+
+FALLBACK_PKCS11 = [
+    # SafeNet / eToken / IDPrime
+    "/usr/lib/libeToken.so",
+    "/usr/lib/x86_64-linux-gnu/libeToken.so",
+    "/usr/local/lib/libeToken.so",
+
+    "/usr/lib/libIDPrimePKCS11.so",
+    "/usr/lib/x86_64-linux-gnu/libIDPrimePKCS11.so",
+    "/usr/local/lib/libIDPrimePKCS11.so",
+
+    # OpenSC
+    "/usr/lib/opensc-pkcs11.so",
+    "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so",
+    "/usr/local/lib/opensc-pkcs11.so",
+]
+
+GLOB_PATTERNS = [
+    "libbit4*.so",
+    "libeTPkcs11*.so",
+    "libeToken*.so",
+    "libIDPrimePKCS11*.so",
+    "opensc-pkcs11*.so",
+    "*pkcs11*.so",
+]
+
+SEARCH_DIRS = [
+    "/usr/lib",
+    "/usr/lib64",
+    "/usr/lib/x86_64-linux-gnu",
+    "/usr/local/lib",
+    "/lib",
+    "/lib64",
+    "/lib/x86_64-linux-gnu",
+]
+
 BOX_COLORS = {
     "signature": "#00aa55",
     "doc_no": "#1976d2",
@@ -123,8 +140,7 @@ BOX_DEFAULT_SIZE = {
     "year": (70.0, 32.0),
 }
 
-# UI layout
-LEFT_PANEL_WIDTH = 500  # OPTION rộng hơn
+LEFT_PANEL_WIDTH = 500
 
 
 # =====================
@@ -145,7 +161,7 @@ def show_cert_detail(parent, cert: dict):
     win.grab_set()
     _set_icon(win)
 
-    pw, ph = 480, 300
+    pw, ph = 520, 340
     sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
     win.geometry(f"{pw}x{ph}+{(sw - pw) // 2}+{(sh - ph) // 2}")
 
@@ -160,15 +176,18 @@ def show_cert_detail(parent, cert: dict):
         ("Email:", cert.get("email", "")),
         ("Token:", cert.get("token", "")),
         ("Slot:", str(cert.get("slot", ""))),
+        ("Serial:", str(cert.get("serial", cert.get("token_serial", "")))),
         ("Label:", cert.get("label", "")),
-        ("ID:", cert.get("id", "")),
+        ("ID:", str(cert.get("id", ""))),
+        ("CKA_ID:", str(cert.get("cka_id", ""))),
+        ("Module:", cert.get("module", cert.get("pkcs11_lib", ""))),
     ]
 
     for i, (lbl, val) in enumerate(rows):
         tk.Label(frm, text=lbl, font=("Arial", 10, "bold"), anchor="w", width=18).grid(
             row=i, column=0, sticky="w", pady=3
         )
-        tk.Label(frm, text=val or "(trống)", fg="#333", anchor="w", wraplength=280).grid(
+        tk.Label(frm, text=val or "(trống)", fg="#333", anchor="w", wraplength=300, justify="left").grid(
             row=i, column=1, sticky="w", pady=3
         )
 
@@ -302,7 +321,7 @@ def show_batch_result(parent, results: list):
 
 
 # =====================
-# PKCS11 SMART DETECT
+# PKCS11 HELPERS
 # =====================
 def _dedup_keep_order(items: List[str]) -> List[str]:
     seen = set()
@@ -316,6 +335,8 @@ def _dedup_keep_order(items: List[str]) -> List[str]:
 
 def _is_elf_shared_object(path: str) -> bool:
     try:
+        if not os.path.isfile(path):
+            return False
         with open(path, "rb") as f:
             head = f.read(4)
         return head == b"\x7fELF"
@@ -330,94 +351,81 @@ def _collect_candidates_by_glob(patterns: List[str], search_dirs: List[str]) -> 
             continue
         for pat in patterns:
             found.extend(glob.glob(os.path.join(d, pat)))
-    # lọc file .so, tồn tại, đúng ELF
-    found = [p for p in found if os.path.isfile(p) and p.endswith(".so") and _is_elf_shared_object(p)]
+    found = [p for p in found if _is_elf_shared_object(p)]
     return _dedup_keep_order(found)
 
 
-def _quick_validate_pkcs11(lib_path: str) -> Tuple[bool, str]:
-    """
-    Validate nhanh: thử đọc certificates.
-    - OK nếu parse_certs không throw exception (kể cả trả về rỗng vẫn coi là lib load được)
-    - FAIL nếu parse_certs throw (thường do sai arch/thiếu dependency/không phải pkcs11)
-    """
+def _normalize_cert_info(cert: dict, lib_path: str) -> dict:
+    cert = dict(cert or {})
+    cert.setdefault("module", lib_path)
+    cert.setdefault("pkcs11_lib", lib_path)
+    cert.setdefault("label", cert.get("label", ""))
+    cert.setdefault("id", cert.get("id", cert.get("cka_id", "")))
+    cert.setdefault("slot", cert.get("slot", ""))
+    cert.setdefault("serial", cert.get("serial", cert.get("token_serial", "")))
+    return cert
+
+
+def _try_load_certs_from_lib(lib_path: str) -> Tuple[bool, List[dict], str]:
     try:
-        _ = parse_certs(lib_path, CA_KEYWORDS)
-        return True, "OK"
+        certs = parse_certs(lib_path, CA_KEYWORDS)
+        certs = certs or []
+        certs = [_normalize_cert_info(c, lib_path) for c in certs]
+        return True, certs, "OK"
     except Exception as e:
-        return False, str(e)
+        return False, [], str(e)
 
 
-def _smart_find_pkcs11(token_type: str, saved_lib: str, extra_hints: List[str]) -> Tuple[Optional[str], str]:
+def auto_find_working_pkcs11(saved_lib: str = "") -> Tuple[Optional[str], List[dict], str]:
     """
-    Trả về (lib_path, reason).
-    Cơ chế:
-    1) thử saved_lib nếu validate OK
-    2) scan thư mục /usr/lib*, /usr/local/lib theo patterns theo token_type (thử và loại trừ)
-    3) fallback theo TOKEN_PKCS11_MAP (thử và loại trừ)
-    4) fallback COMMON_PKCS11_LIBS + auto_detect_pkcs11
+    Thử lần lượt:
+    1. saved_lib nếu có
+    2. PRIORITY_PKCS11
+    3. FALLBACK_PKCS11
+    4. scan glob toàn bộ các lib pkcs11 phổ biến
+    Lib nào load được và nhìn thấy cert/token thì dùng luôn.
     """
-    search_dirs = [
-        "/usr/lib",
-        "/usr/lib64",
-        "/usr/lib/x86_64-linux-gnu",
-        "/usr/local/lib",
-        "/lib",
-        "/lib64",
-        "/lib/x86_64-linux-gnu",
-    ]
+    tried = set()
 
-    # 1) saved
-    if saved_lib and os.path.exists(saved_lib) and _is_elf_shared_object(saved_lib):
-        ok, msg = _quick_validate_pkcs11(saved_lib)
+    def try_one(lib_path: str) -> Tuple[Optional[str], List[dict], str]:
+        if not lib_path or lib_path in tried:
+            return None, [], "skip"
+        tried.add(lib_path)
+
+        if not _is_elf_shared_object(lib_path):
+            return None, [], "not_elf"
+
+        ok, certs, msg = _try_load_certs_from_lib(lib_path)
+        if ok and certs:
+            return lib_path, certs, "certs_ok"
+
         if ok:
-            return saved_lib, "config_saved_ok"
-        # saved lỗi thì loại bỏ ngay, không dùng so cũ nữa
-    # 2) glob smart
-    patterns_by_type = {
-        "bit4id": ["*bit4*.so", "*bit4xpki*.so", "*vgca*.so"],
-        "safenet": ["*eTPkcs11*.so", "*eToken*.so", "*safenet*.so"],
-        "opensc": ["*opensc-pkcs11*.so", "*open-sc*.so", "*pkcs11*.so"],
-        "unknown": ["*pkcs11*.so", "*.so"],
-    }
-    patterns = patterns_by_type.get(token_type, patterns_by_type["unknown"])
+            return None, [], "loaded_but_no_cert"
 
-    # ưu tiên thêm hint nếu có
-    for h in extra_hints:
-        h = (h or "").strip()
-        if h:
-            patterns.insert(0, f"*{h}*.so")
+        return None, [], msg
 
-    discovered = _collect_candidates_by_glob(patterns, search_dirs)
+    if saved_lib:
+        lib, certs, reason = try_one(saved_lib)
+        if lib:
+            return lib, certs, "saved_lib_ok"
 
-    # thử lần lượt, fail là nhảy sang file tiếp theo ngay
-    for cand in discovered:
-        ok, msg = _quick_validate_pkcs11(cand)
-        if ok:
-            return cand, "smart_scan_ok"
+    for lib_path in PRIORITY_PKCS11:
+        lib, certs, reason = try_one(lib_path)
+        if lib:
+            return lib, certs, "priority_ok"
 
-    # 3) fallback theo map (nhưng vẫn thử loại trừ)
-    for cand in _dedup_keep_order(TOKEN_PKCS11_MAP.get(token_type, [])):
-        if cand and os.path.exists(cand) and _is_elf_shared_object(cand):
-            ok, msg = _quick_validate_pkcs11(cand)
-            if ok:
-                return cand, "map_fallback_ok"
+    for lib_path in FALLBACK_PKCS11:
+        lib, certs, reason = try_one(lib_path)
+        if lib:
+            return lib, certs, "fallback_ok"
 
-    # 4) fallback common + auto_detect (nhưng vẫn validate)
-    common_existing = [p for p in COMMON_PKCS11_LIBS if p and os.path.exists(p) and _is_elf_shared_object(p)]
-    for cand in _dedup_keep_order(common_existing):
-        ok, msg = _quick_validate_pkcs11(cand)
-        if ok:
-            return cand, "common_validate_ok"
+    discovered = _collect_candidates_by_glob(GLOB_PATTERNS, SEARCH_DIRS)
+    for lib_path in discovered:
+        lib, certs, reason = try_one(lib_path)
+        if lib:
+            return lib, certs, "glob_ok"
 
-    # auto_detect cuối cùng (không biết internal check), vẫn validate lại
-    auto = auto_detect_pkcs11(COMMON_PKCS11_LIBS)
-    if auto and os.path.exists(auto) and _is_elf_shared_object(auto):
-        ok, msg = _quick_validate_pkcs11(auto)
-        if ok:
-            return auto, "auto_detect_ok"
-
-    return None, "not_found"
+    return None, [], "not_found"
 
 
 # =====================
@@ -433,9 +441,7 @@ class SignGUI(tk.Tk):
             if os.path.exists(ICON_ICO):
                 self.iconbitmap(ICON_ICO)
             if os.path.exists(ICON_PNG):
-                    self.iconphoto(True, tk.PhotoImage(file=ICON_PNG))
-               
-                
+                self.iconphoto(True, tk.PhotoImage(file=ICON_PNG))
         except Exception:
             pass
 
@@ -459,21 +465,17 @@ class SignGUI(tk.Tk):
         self._drag_start = None
 
         self.pkcs11_lib_var = tk.StringVar()
-        self.token_type_var = tk.StringVar(value="unknown")
         self._cert_list: list = []
         self._selected_cert: Optional[dict] = None
         self._batch_files: list = []
 
-        # shared meta
         self.doc_no_var = tk.StringVar(value=self.config_data.get("last_doc_no", ""))
         self.day_var = tk.StringVar(value=self.config_data.get("last_day", ""))
         self.month_var = tk.StringVar(value=self.config_data.get("last_month", ""))
         self.year_var = tk.StringVar(value=self.config_data.get("last_year", ""))
 
-        # active overlay box
         self.active_box_var = tk.StringVar(value="signature")
 
-        # placements
         self.signature_placement: Optional[SignPlacement] = self._dict_to_placement(self.config_data.get("sig_placement"))
         self.doc_no_placement: Optional[SignPlacement] = self._dict_to_placement(self.config_data.get("doc_no_placement"))
         self.day_placement: Optional[SignPlacement] = self._dict_to_placement(self.config_data.get("day_placement"))
@@ -495,30 +497,26 @@ class SignGUI(tk.Tk):
 
         self.after(200, self.scan_token)
         self.after(500, self.check_browser_request)
-        def check_browser_request(self):
 
-    path="/tmp/vgca_request.json"
+    def check_browser_request(self):
+        path = "/tmp/vgca_request.json"
 
-    if not os.path.exists(path):
-        return
+        if not os.path.exists(path):
+            return
 
-    try:
+        try:
+            import json
 
-        import json
+            with open(path, "r", encoding="utf-8") as f:
+                req = json.load(f)
 
-        with open(path,"r",encoding="utf8") as f:
+            os.remove(path)
+            print(req)
 
-            req=json.load(f)
+            # TODO: nếu sau này cần browser/native-host thì xử lý ở đây
 
-        os.remove(path)
-
-        print(req)
-
-        # bước sau mở PDF
-
-    except Exception as e:
-
-        print(e)
+        except Exception as e:
+            print(e)
 
     @property
     def placement(self) -> Optional[SignPlacement]:
@@ -550,7 +548,13 @@ class SignGUI(tk.Tk):
     def _placement_to_dict(self, p: Optional[SignPlacement]) -> Optional[dict]:
         if not p:
             return None
-        return {"page_index": int(p.page_index), "x": float(p.x), "y": float(p.y), "w": float(p.w), "h": float(p.h)}
+        return {
+            "page_index": int(p.page_index),
+            "x": float(p.x),
+            "y": float(p.y),
+            "w": float(p.w),
+            "h": float(p.h),
+        }
 
     def _dict_to_placement(self, d) -> Optional[SignPlacement]:
         if not isinstance(d, dict):
@@ -632,7 +636,6 @@ class SignGUI(tk.Tk):
         main = tk.Frame(parent)
         main.pack(fill="both", expand=True)
 
-        # LEFT scrollable
         left_outer = tk.Frame(main, width=LEFT_PANEL_WIDTH)
         left_outer.pack(side="left", fill="y")
         left_outer.pack_propagate(False)
@@ -656,14 +659,12 @@ class SignGUI(tk.Tk):
 
         left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
-        # RIGHT preview
         right = tk.Frame(main)
         right.pack(side="right", fill="both", expand=True)
 
         pad = {"padx": 8, "pady": 3}
         wrap = LEFT_PANEL_WIDTH - 40
 
-        # input
         frm_in = tk.LabelFrame(left, text="📄 Tài liệu", padx=8, pady=6)
         frm_in.pack(fill="x", **pad)
         self.lbl_input = tk.Label(frm_in, text="Chưa chọn file", fg="gray", wraplength=wrap, justify="left")
@@ -674,14 +675,12 @@ class SignGUI(tk.Tk):
         self.lbl_pdf = tk.Label(frm_in, text="PDF: (chưa có)", fg="gray", wraplength=wrap, justify="left")
         self.lbl_pdf.pack(anchor="w")
 
-        # png
         frm_png = tk.LabelFrame(left, text="🖊️ Mẫu chữ ký (PNG)", padx=8, pady=6)
         frm_png.pack(fill="x", **pad)
         self.lbl_png = tk.Label(frm_png, text="Chưa chọn PNG", fg="gray", wraplength=wrap, justify="left")
         self.lbl_png.pack(anchor="w")
         tk.Button(frm_png, text="🖼️ Đổi PNG chữ ký", command=self.choose_png).pack(fill="x", pady=3)
 
-        # meta
         frm_meta = tk.LabelFrame(left, text="🧾 Thông tin văn bản", padx=8, pady=8)
         frm_meta.pack(fill="x", **pad)
 
@@ -717,7 +716,6 @@ class SignGUI(tk.Tk):
         for ent in (ent_no, ent_day, ent_month, ent_year):
             ent.bind("<KeyRelease>", _on_meta_change)
 
-        # active box mode
         frm_mode = tk.LabelFrame(left, text="🎯 Chọn vùng đang đặt vị trí (click lên PDF)", padx=8, pady=6)
         frm_mode.pack(fill="x", **pad)
 
@@ -750,7 +748,6 @@ class SignGUI(tk.Tk):
             font=("Arial", 8),
         ).pack(anchor="e", pady=(4, 0))
 
-        # pages
         frm_page = tk.LabelFrame(left, text="📑 Trang", padx=8, pady=6)
         frm_page.pack(fill="x", **pad)
         rowp = tk.Frame(frm_page)
@@ -775,10 +772,8 @@ class SignGUI(tk.Tk):
         )
         self.lbl_place.pack(anchor="w", pady=2)
 
-        # token
         self._build_token_panel(left, wrap)
 
-        # sign button
         frm_act = tk.LabelFrame(left, text="✅ Ký và xuất PDF", padx=8, pady=8)
         frm_act.pack(fill="x", **pad)
         tk.Button(
@@ -791,7 +786,6 @@ class SignGUI(tk.Tk):
             height=2,
         ).pack(fill="x", pady=4)
 
-        # preview
         frm_prev = tk.LabelFrame(
             right,
             text="👁️ Preview  |  Chọn vùng -> Click=đặt  |  Kéo=di chuyển  |  Góc vàng=resize",
@@ -875,8 +869,10 @@ class SignGUI(tk.Tk):
 
         btn_row = tk.Frame(frm_files)
         btn_row.pack(fill="x", pady=(0, 6))
-        tk.Button(btn_row, text="➕ Thêm file", command=self.batch_add_files, bg="#27ae60", fg="white",
-                  font=("Arial", 10, "bold")).pack(side="left", padx=(0, 6))
+        tk.Button(
+            btn_row, text="➕ Thêm file", command=self.batch_add_files, bg="#27ae60", fg="white",
+            font=("Arial", 10, "bold")
+        ).pack(side="left", padx=(0, 6))
         tk.Button(btn_row, text="➖ Xóa đã chọn", command=self.batch_remove_selected, bg="#e74c3c", fg="white").pack(
             side="left", padx=(0, 6)
         )
@@ -979,8 +975,12 @@ class SignGUI(tk.Tk):
         self.lbl_cert_info = tk.Label(frm, text="", fg="#2c3e50", wraplength=wrap, justify="left", font=("Arial", 8))
         self.lbl_cert_info.pack(anchor="w", pady=2)
 
-        tk.Button(frm, text="📦 Chưa có driver? Xem hướng dẫn cài", command=lambda: show_driver_suggestion(self),
-                  fg="#2980b9").pack(fill="x", pady=(4, 0))
+        tk.Button(
+            frm,
+            text="📦 Chưa có driver? Xem hướng dẫn cài",
+            command=lambda: show_driver_suggestion(self),
+            fg="#2980b9"
+        ).pack(fill="x", pady=(4, 0))
 
     # =====================
     # QUIT
@@ -998,48 +998,43 @@ class SignGUI(tk.Tk):
         self.destroy()
 
     # =====================
-    # TOKEN SCAN / CERT (SMART)
+    # TOKEN SCAN / CERT
     # =====================
     def scan_token(self):
         self.lbl_token.config(text="🔍 Đang quét USB Token...", fg="gray")
-        self.status_var.set("🔍 Đang dò driver PKCS#11...")
+        self.status_var.set("🔍 Đang thử PKCS#11: Bit4id -> SafeNet -> Fallback...")
         self.update_idletasks()
 
-        token_type = detect_token_type()
-        self.token_type_var.set(token_type)
-
-        saved_lib = self.config_data.get("pkcs11_lib", "")
-        # hint thêm theo token_type (để glob ưu tiên)
-        hints = []
-        if token_type == "bit4id":
-            hints = ["bit4", "bit4xpki"]
-        elif token_type == "safenet":
-            hints = ["eTPkcs11", "eToken"]
-        elif token_type == "opensc":
-            hints = ["opensc", "pkcs11"]
-
-        lib, reason = _smart_find_pkcs11(token_type, saved_lib, hints)
-
-        display_name, color = TOKEN_DISPLAY.get(token_type, ("Không xác định", "#e74c3c"))
+        saved_lib = self.config_data.get("pkcs11_lib", "").strip()
+        lib, certs, reason = auto_find_working_pkcs11(saved_lib)
 
         if lib and os.path.exists(lib):
             self.pkcs11_lib_var.set(lib)
             self.config_data["pkcs11_lib"] = lib
             self._save_config()
 
-            # show
-            if token_type == "unknown":
-                self.lbl_token.config(text=f"🔌 Đã dò thấy PKCS#11: {os.path.basename(lib)} ✅", fg="#8e44ad")
-                self.status_var.set(f"✅ Driver: {os.path.basename(lib)}")
-            else:
-                self.lbl_token.config(text=f"🔌 {display_name} ✅", fg=color)
-                self.status_var.set(f"✅ Token: {display_name} | {os.path.basename(lib)}")
+            self._cert_list = certs
 
-            self.after(200, self.load_certs_ui)
+            if certs:
+                values = [c.get("display", "(không tên)") for c in certs]
+                self.cert_combo["values"] = values
+                self.cert_combo_var.set(values[0])
+                self._selected_cert = certs[0]
+                self._update_cert_info(certs[0])
+                self.lbl_token.config(text=f"🔌 Token OK: {os.path.basename(lib)} ✅", fg="#27ae60")
+                self.status_var.set(f"✅ Đã nhận token qua {os.path.basename(lib)} | {len(certs)} cert")
+            else:
+                self.lbl_token.config(text=f"🔌 Đã nạp lib: {os.path.basename(lib)}", fg="#f39c12")
+                self.status_var.set(f"⚠️ Lib load được nhưng chưa thấy certificate: {os.path.basename(lib)}")
         else:
             self.pkcs11_lib_var.set("")
+            self._cert_list = []
+            self._selected_cert = None
+            self.cert_combo["values"] = []
+            self.cert_combo_var.set("(Không tìm thấy cert)")
+            self.lbl_cert_info.config(text="⚠️ Không tìm thấy certificate.")
             self.lbl_token.config(text="❌ Không tìm thấy driver PKCS#11 phù hợp", fg="#e74c3c")
-            self.status_var.set("⚠️ Không tìm thấy driver phù hợp. Vui lòng cài driver hoặc chọn .so thủ công.")
+            self.status_var.set("⚠️ Không tìm thấy token/driver phù hợp. Có thể chọn .so thủ công.")
             show_driver_suggestion(self)
 
     def load_certs_ui(self):
@@ -1047,11 +1042,21 @@ class SignGUI(tk.Tk):
         if not lib or not os.path.exists(lib):
             messagebox.showerror("Lỗi", "Chưa có PKCS#11 module.\nNhấn 'Scan Token' trước.")
             return
+
         self.status_var.set("🔄 Đang đọc certificates từ token...")
         self.update_idletasks()
 
-        certs = parse_certs(lib, CA_KEYWORDS)
+        try:
+            certs = parse_certs(lib, CA_KEYWORDS)
+            certs = certs or []
+            certs = [_normalize_cert_info(c, lib) for c in certs]
+        except Exception as e:
+            self.status_var.set("❌ Lỗi đọc certificate")
+            messagebox.showerror("Lỗi load cert", str(e))
+            return
+
         self._cert_list = certs
+
         if not certs:
             self.cert_combo["values"] = []
             self.cert_combo_var.set("(Không tìm thấy cert)")
@@ -1059,7 +1064,7 @@ class SignGUI(tk.Tk):
             self.status_var.set("⚠️ Không tìm thấy certificate")
             return
 
-        values = [c["display"] for c in certs]
+        values = [c.get("display", "(không tên)") for c in certs]
         self.cert_combo["values"] = values
         self.cert_combo_var.set(values[0])
         self._selected_cert = certs[0]
@@ -1069,7 +1074,7 @@ class SignGUI(tk.Tk):
     def _on_cert_selected(self, event=None):
         selected = self.cert_combo_var.get()
         for c in self._cert_list:
-            if c["display"] == selected:
+            if c.get("display", "") == selected:
                 self._selected_cert = c
                 self._update_cert_info(c)
                 break
@@ -1078,7 +1083,7 @@ class SignGUI(tk.Tk):
         info = (
             f"👤 {cert.get('cn', '')}\n"
             f"🏢 {cert.get('org', '')}\n"
-            f"🔑 ID: {cert.get('id', '')} | Slot: {cert.get('slot', '')}"
+            f"🔑 ID: {cert.get('id', cert.get('cka_id', ''))} | Slot: {cert.get('slot', '')}"
         )
         self.lbl_cert_info.config(text=info)
 
@@ -1090,7 +1095,8 @@ class SignGUI(tk.Tk):
 
     def choose_pkcs11(self):
         path = filedialog.askopenfilename(
-            title="Chọn PKCS#11 module (.so)", filetypes=[("Shared Object", "*.so"), ("All files", "*.*")]
+            title="Chọn PKCS#11 module (.so)",
+            filetypes=[("Shared Object", "*.so"), ("All files", "*.*")]
         )
         if path:
             self.pkcs11_lib_var.set(path)
@@ -1108,7 +1114,10 @@ class SignGUI(tk.Tk):
         self.lbl_png.config(text=os.path.basename(path), fg="black")
 
     def choose_png(self):
-        path = filedialog.askopenfilename(title="Chọn PNG chữ ký", filetypes=[("PNG", "*.png"), ("All files", "*.*")])
+        path = filedialog.askopenfilename(
+            title="Chọn PNG chữ ký",
+            filetypes=[("PNG", "*.png"), ("All files", "*.*")]
+        )
         if not path:
             return
         if os.path.splitext(path)[1].lower() not in SUPPORTED_PNG_EXT:
@@ -1161,6 +1170,7 @@ class SignGUI(tk.Tk):
                 self.doc.close()
             except Exception:
                 pass
+
         self.doc = fitz.open(pdf_path)
         self.page_count = self.doc.page_count
 
@@ -1202,7 +1212,6 @@ class SignGUI(tk.Tk):
         self._canvas_offset = (ox, oy)
         self.canvas.create_image(ox, oy, anchor="nw", image=self.canvas_img_tk)
 
-        # draw overlays (Số/Ngày/Tháng/Năm: màu đen, không label góc trái)
         self._draw_one_overlay(self.signature_placement, "signature", self.sig_png_path or "")
         self._draw_one_overlay(self.doc_no_placement, "doc_no", self.doc_no_var.get().strip())
         self._draw_one_overlay(self.day_placement, "day", self.day_var.get().strip())
@@ -1431,7 +1440,7 @@ class SignGUI(tk.Tk):
         name = BOX_LABELS.get(self._get_active_name(), "")
         self.lbl_place.config(
             text=f"✅ [{name}] Trang {p.page_index + 1}  |  x={int(p.x)} y={int(p.y)}  w={int(p.w)} h={int(p.h)}\n"
-            f"Kéo=di chuyển · Góc vàng=resize",
+                 f"Kéo=di chuyển · Góc vàng=resize",
             fg="black",
         )
 
@@ -1457,12 +1466,14 @@ class SignGUI(tk.Tk):
             return
         if not self.signature_placement:
             messagebox.showwarning(
-                "Thiếu vị trí chữ ký", "Bạn chưa đặt vị trí chữ ký.\nChọn 'Chữ ký' rồi click lên PDF."
+                "Thiếu vị trí chữ ký",
+                "Bạn chưa đặt vị trí chữ ký.\nChọn 'Chữ ký' rồi click lên PDF."
             )
             return
         if not self._selected_cert:
             messagebox.showwarning(
-                "Thiếu Certificate", "Bạn chưa chọn certificate.\nNhấn 'Load Certificates từ Token' trước."
+                "Thiếu Certificate",
+                "Bạn chưa chọn certificate.\nNhấn 'Load Certificates từ Token' trước."
             )
             return
 
@@ -1475,7 +1486,10 @@ class SignGUI(tk.Tk):
         if not pin:
             return
 
-        cert = self._selected_cert
+        cert = dict(self._selected_cert)
+        cert.setdefault("pkcs11_lib", pkcs11_lib)
+        cert.setdefault("module", pkcs11_lib)
+
         base_in = os.path.splitext(os.path.basename(self.input_path))[0] if self.input_path else "output"
         out_dir = self.input_dir or os.path.dirname(self.pdf_path)
         out_pdf = os.path.join(out_dir, base_in + "_signed.pdf")
@@ -1589,13 +1603,17 @@ class SignGUI(tk.Tk):
         if not pin:
             return
 
+        cert = dict(self._selected_cert)
+        cert.setdefault("pkcs11_lib", pkcs11_lib)
+        cert.setdefault("module", pkcs11_lib)
+
         t = threading.Thread(
             target=self._batch_sign_worker,
             args=(
                 list(self._batch_files),
                 pin,
                 pkcs11_lib,
-                self._selected_cert,
+                cert,
                 self.sig_png_path,
                 self.signature_placement,
                 self.current_page_pix.width if self.current_page_pix else 794,
