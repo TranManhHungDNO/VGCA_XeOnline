@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install deps
+      - name: Install system deps
         run: |
           sudo apt update
           sudo apt install -y dpkg-dev libpcsclite-dev swig build-essential python3-dev libffi-dev
@@ -38,6 +38,9 @@ jobs:
             --add-data "safenet.png:." \
             --hidden-import fitz \
             --hidden-import PIL \
+            --hidden-import PIL.ImageTk \
+            --hidden-import PIL._tkinter_finder \
+            --collect-submodules PIL \
             --name vgca-signer \
             main.py
 
@@ -69,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install deps
+      - name: Install system deps
         run: |
           dnf install -y python3 python3-pip rpm-build gcc gcc-c++ make libffi-devel openssl-devel pcsc-lite-devel swig
 
@@ -86,6 +89,9 @@ jobs:
             --add-data "safenet.png:." \
             --hidden-import fitz \
             --hidden-import PIL \
+            --hidden-import PIL.ImageTk \
+            --hidden-import PIL._tkinter_finder \
+            --collect-submodules PIL \
             --name vgca-signer \
             main.py
 
@@ -118,7 +124,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
 
-      - name: Release
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |

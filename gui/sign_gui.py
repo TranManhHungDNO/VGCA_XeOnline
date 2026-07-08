@@ -23,15 +23,14 @@ from core.pdf_sign_service import sign_one_pdf
 def resource_path(relative_path):
     """Lấy đường dẫn tài nguyên khi chạy source hoặc PyInstaller"""
     try:
-        # Khi chạy bằng PyInstaller: sys._MEIPASS là thư mục bundle
         base_path = sys._MEIPASS
     except AttributeError:
-        # Khi dev: trỏ về project root (thư mục chứa main.py)
-        # sign_gui.py nằm trong gui/ nên phải lên 1 cấp
+        # sign_gui.py nằm trong gui/ → lên 1 cấp về project root
         base_path = os.path.abspath(
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
         )
     return os.path.join(base_path, relative_path)
+
 
 
 
@@ -661,10 +660,7 @@ class SignGUI(tk.Tk):
 
         left.bind("<Configure>", _on_left_configure)
 
-        def _on_mousewheel(event):
-            left_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
 
         right = tk.Frame(main)
         right.pack(side="right", fill="both", expand=True)
