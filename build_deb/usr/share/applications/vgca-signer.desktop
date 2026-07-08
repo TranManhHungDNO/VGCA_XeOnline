@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=VGCA Token Signing Tool
+Comment=Ký số PDF bằng USB Token
+Exec=vgca-signer
+Icon=vgca
+Type=Application
+Categories=Utility;Office;
+Terminal=false
+StartupNotify=true

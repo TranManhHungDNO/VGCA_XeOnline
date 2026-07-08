@@ -32,7 +32,8 @@ def resource_path(relative_path):
 # =====================
 # CONFIG
 # =====================
-APP_TITLE = "VGCA Token Signing Tool"
+from version import __version__
+APP_TITLE = f"VGCA Token Signing Tool v{__version__}"
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".vgca_sign_config.json")
 SUPPORTED_INPUT_EXT = {".doc", ".docx", ".xls", ".xlsx", ".pdf"}
 SUPPORTED_PNG_EXT = {".png"}

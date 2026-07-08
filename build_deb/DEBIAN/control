@@ -1,7 +1,10 @@
-Package: vgca-xeonline
-Version: 1.0.0
+Package: vgca-signer
+Version: 1.0
 Section: utils
 Priority: optional
 Architecture: amd64
-Maintainer: Hung Tran
-Description: VGCA XeOnline Digital Signature Tool
+Depends: opensc
+Maintainer: Hung <hung@dno.vn>
+Description: VGCA Token Signing Tool
+ Digital signing tool using USB Token (SafeNet, Bit4id).
+ Supports PDF signing via PKCS#11.
