@@ -25,8 +25,10 @@ jobs:
           sudo apt update
           sudo apt install -y dpkg-dev libpcsclite-dev swig build-essential python3-dev libffi-dev
 
-      - run: pip install -r requirements.txt
-      - run: pip install pyinstaller
+      - name: Install Python deps
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
 
       - name: Build app
         run: |
@@ -46,9 +48,9 @@ jobs:
           mkdir -p build_deb/usr/bin
 
           cp -r dist/vgca-signer/. build_deb/opt/vgca-signer/
-          cp dist/vgca-signer/vgca-signer build_deb/usr/bin/vgca-signer
-
           chmod +x build_deb/opt/vgca-signer/vgca-signer
+
+          printf '#!/bin/bash\nexec /opt/vgca-signer/vgca-signer "$@"\n' > build_deb/usr/bin/vgca-signer
           chmod +x build_deb/usr/bin/vgca-signer
 
           dpkg-deb --build build_deb vgca-signer.deb
@@ -71,8 +73,10 @@ jobs:
         run: |
           dnf install -y python3 python3-pip rpm-build gcc gcc-c++ make libffi-devel openssl-devel pcsc-lite-devel swig
 
-      - run: pip3 install -r requirements.txt
-      - run: pip3 install pyinstaller
+      - name: Install Python deps
+        run: |
+          pip3 install -r requirements.txt
+          pip3 install pyinstaller
 
       - name: Build app
         run: |
@@ -87,58 +91,17 @@ jobs:
 
       - name: Build RPM
         run: |
-          mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-
           mkdir -p rpmbuild/BUILD/vgca-signer/opt/vgca-signer
           mkdir -p rpmbuild/BUILD/vgca-signer/usr/bin
+          mkdir -p rpmbuild/RPMS rpmbuild/SPECS rpmbuild/SRPMS
 
           cp -r dist/vgca-signer/. rpmbuild/BUILD/vgca-signer/opt/vgca-signer/
-          cp dist/vgca-signer/vgca-signer rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
-
           chmod +x rpmbuild/BUILD/vgca-signer/opt/vgca-signer/vgca-signer
+
+          printf '#!/bin/bash\nexec /opt/vgca-signer/vgca-signer "$@"\n' > rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
           chmod +x rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
 
-      - name: Build RPM
-        run: |
-          mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-
-          mkdir -p rpmbuild/BUILD/vgca-signer/opt/vgca-signer
-          mkdir -p rpmbuild/BUILD/vgca-signer/usr/bin
-
-          cp -r dist/vgca-signer/. rpmbuild/BUILD/vgca-signer/opt/vgca-signer/
-          cp dist/vgca-signer/vgca-signer rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
-
-          chmod +x rpmbuild/BUILD/vgca-signer/opt/vgca-signer/vgca-signer
-          chmod +x rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
-
-          cat > rpmbuild/SPECS/vgca-signer.spec << 'EOF'
-          Name: vgca-signer
-          Version: 1.0.0
-          Release: 1
-          Summary: VGCA Token Signing Tool
-
-          License: MIT
-          BuildArch: x86_64
-
-          %description
-          VGCA Token Signing Tool
-
-          %install
-          mkdir -p %{buildroot}/opt/vgca-signer
-          mkdir -p %{buildroot}/usr/bin
-          cp -r %{_builddir}/vgca-signer/opt/vgca-signer/* %{buildroot}/opt/vgca-signer/
-          cp %{_builddir}/vgca-signer/usr/bin/vgca-signer %{buildroot}/usr/bin/
-
-          %files
-          /opt/vgca-signer
-          /usr/bin/vgca-signer
-
-          %changelog
-          * Wed Jul 08 2026 VGCA - Initial build
-          EOF
-
-          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/vgca-signer.spec
-
+          printf 'Name: vgca-signer\nVersion: 1.0.0\nRelease: 1\nSummary: VGCA Token Signing Tool\nLicense: MIT\nBuildArch: x86_64\n\n%%description\nVGCA Token Signing Tool\n\n%%install\nmkdir -p %%{buildroot}/opt/vgca-signer\nmkdir -p %%{buildroot}/usr/bin\ncp -r %%{_builddir}/vgca-signer/opt/vgca-signer/* %%{buildroot}/opt/vgca-signer/\ncp %%{_builddir}/vgca-signer/usr/bin/vgca-signer %%{buildroot}/usr/bin/\n\n%%files\n/opt/vgca-signer\n/usr/bin/vgca-signer\n\n%%changelog\n* Wed Jul 08 2026 VGCA - Initial build\n' > rpmbuild/SPECS/vgca-signer.spec
 
           rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/vgca-signer.spec
 
