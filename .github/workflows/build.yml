@@ -24,7 +24,7 @@ jobs:
       - name: Install system deps
         run: |
           sudo apt update
-          sudo apt install -y dpkg-dev
+          sudo apt install -y dpkg-dev libpcsclite-dev swig build-essential python3-dev libffi-dev
 
       - name: Install Python deps
         run: |
@@ -44,8 +44,11 @@ jobs:
 
       - name: Copy binary vào build_deb
         run: |
+          rm -rf build_deb/opt/vgca-signer
           mkdir -p build_deb/opt/vgca-signer
+          mkdir -p build_deb/usr/bin
           cp -r dist/vgca-signer/. build_deb/opt/vgca-signer/
+          cp dist/vgca-signer/vgca-signer build_deb/usr/bin/vgca-signer
           chmod +x build_deb/opt/vgca-signer/vgca-signer
           chmod +x build_deb/usr/bin/vgca-signer
 
