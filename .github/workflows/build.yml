@@ -1,4 +1,4 @@
-name: Build DEB Package
+name: Build Packages
 
 on:
   push:
@@ -9,29 +9,26 @@ permissions:
   contents: write
 
 jobs:
-  build:
+
+  build-deb:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install system deps
+      - name: Install deps
         run: |
           sudo apt update
           sudo apt install -y dpkg-dev libpcsclite-dev swig build-essential python3-dev libffi-dev
 
-      - name: Install Python deps
-        run: |
-          pip install -r requirements.txt
-          pip install pyinstaller
+      - run: pip install -r requirements.txt
+      - run: pip install pyinstaller
 
-      - name: Build app (Linux binary)
+      - name: Build app
         run: |
           pyinstaller --onedir --noconsole \
             --add-data "vgca.png:." \
@@ -42,28 +39,127 @@ jobs:
             --name vgca-signer \
             main.py
 
-      - name: Copy binary vào build_deb
+      - name: Package DEB
         run: |
           rm -rf build_deb/opt/vgca-signer
           mkdir -p build_deb/opt/vgca-signer
           mkdir -p build_deb/usr/bin
+
           cp -r dist/vgca-signer/. build_deb/opt/vgca-signer/
           cp dist/vgca-signer/vgca-signer build_deb/usr/bin/vgca-signer
+
           chmod +x build_deb/opt/vgca-signer/vgca-signer
           chmod +x build_deb/usr/bin/vgca-signer
 
-      - name: Build .deb
-        run: dpkg-deb --build build_deb vgca-signer.deb
+          dpkg-deb --build build_deb vgca-signer.deb
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: deb-package
           path: vgca-signer.deb
 
-      - name: Create Release
+
+  build-rpm:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          dnf install -y python3 python3-pip rpm-build gcc gcc-c++ make libffi-devel openssl-devel pcsc-lite-devel swig
+
+      - run: pip3 install -r requirements.txt
+      - run: pip3 install pyinstaller
+
+      - name: Build app
+        run: |
+          pyinstaller --onedir --noconsole \
+            --add-data "vgca.png:." \
+            --add-data "bit4id.png:." \
+            --add-data "safenet.png:." \
+            --hidden-import fitz \
+            --hidden-import PIL \
+            --name vgca-signer \
+            main.py
+
+      - name: Build RPM
+        run: |
+          mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+          mkdir -p rpmbuild/BUILD/vgca-signer/opt/vgca-signer
+          mkdir -p rpmbuild/BUILD/vgca-signer/usr/bin
+
+          cp -r dist/vgca-signer/. rpmbuild/BUILD/vgca-signer/opt/vgca-signer/
+          cp dist/vgca-signer/vgca-signer rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
+
+          chmod +x rpmbuild/BUILD/vgca-signer/opt/vgca-signer/vgca-signer
+          chmod +x rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
+
+      - name: Build RPM
+        run: |
+          mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+          mkdir -p rpmbuild/BUILD/vgca-signer/opt/vgca-signer
+          mkdir -p rpmbuild/BUILD/vgca-signer/usr/bin
+
+          cp -r dist/vgca-signer/. rpmbuild/BUILD/vgca-signer/opt/vgca-signer/
+          cp dist/vgca-signer/vgca-signer rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
+
+          chmod +x rpmbuild/BUILD/vgca-signer/opt/vgca-signer/vgca-signer
+          chmod +x rpmbuild/BUILD/vgca-signer/usr/bin/vgca-signer
+
+          cat > rpmbuild/SPECS/vgca-signer.spec << 'EOF'
+          Name: vgca-signer
+          Version: 1.0.0
+          Release: 1
+          Summary: VGCA Token Signing Tool
+
+          License: MIT
+          BuildArch: x86_64
+
+          %description
+          VGCA Token Signing Tool
+
+          %install
+          mkdir -p %{buildroot}/opt/vgca-signer
+          mkdir -p %{buildroot}/usr/bin
+          cp -r %{_builddir}/vgca-signer/opt/vgca-signer/* %{buildroot}/opt/vgca-signer/
+          cp %{_builddir}/vgca-signer/usr/bin/vgca-signer %{buildroot}/usr/bin/
+
+          %files
+          /opt/vgca-signer
+          /usr/bin/vgca-signer
+
+          %changelog
+          * Wed Jul 08 2026 VGCA - Initial build
+          EOF
+
+          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/vgca-signer.spec
+
+
+          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/vgca-signer.spec
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm-package
+          path: rpmbuild/RPMS/**/*.rpm
+
+
+  release:
+    needs: [build-deb, build-rpm]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: vgca-signer.deb
+          files: |
+            deb-package/vgca-signer.deb
+            rpm-package/**/*.rpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
