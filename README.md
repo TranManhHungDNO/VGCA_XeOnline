@@ -12,7 +12,7 @@ Open-source digital signature platform for Linux based on PKCS#11.
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-orange)
-
+[![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-blue?logo=github)](https://github.com/TranManhHungDNO/VGCA_XeOnline/releases)
 ---
 
 **PKCS#11 • PDF Signing • USB Token • Native Messaging • Chrome Extension**
@@ -292,6 +292,7 @@ See LICENSE for more information.
 Download the latest stable version from the GitHub Releases page.
 
 👉 Latest Releases:
+[![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-blue?logo=github)](https://github.com/TranManhHungDNO/VGCA_XeOnline/releases)
 https://github.com/TranManhHungDNO/VGCA_XeOnline/releases
 
 ### Available Packages
