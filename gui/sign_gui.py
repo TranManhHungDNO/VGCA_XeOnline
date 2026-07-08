@@ -23,10 +23,16 @@ from core.pdf_sign_service import sign_one_pdf
 def resource_path(relative_path):
     """Lấy đường dẫn tài nguyên khi chạy source hoặc PyInstaller"""
     try:
+        # Khi chạy bằng PyInstaller: sys._MEIPASS là thư mục bundle
         base_path = sys._MEIPASS
     except AttributeError:
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Khi dev: trỏ về project root (thư mục chứa main.py)
+        # sign_gui.py nằm trong gui/ nên phải lên 1 cấp
+        base_path = os.path.abspath(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        )
     return os.path.join(base_path, relative_path)
+
 
 
 # =====================

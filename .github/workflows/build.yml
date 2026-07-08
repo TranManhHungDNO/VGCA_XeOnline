@@ -1,12 +1,12 @@
-permissions:
-  contents: write
-
 name: Build DEB Package
 
 on:
   push:
     tags:
       - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -21,10 +21,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install system deps
         run: |
           sudo apt update
           sudo apt install -y dpkg-dev
+
+      - name: Install Python deps
+        run: |
           pip install -r requirements.txt
           pip install pyinstaller
 
@@ -32,13 +35,22 @@ jobs:
         run: |
           pyinstaller --onedir --noconsole \
             --add-data "vgca.png:." \
+            --add-data "bit4id.png:." \
+            --add-data "safenet.png:." \
+            --hidden-import fitz \
+            --hidden-import PIL \
             --name vgca-signer \
             main.py
 
-      - name: Build .deb package
+      - name: Copy binary vào build_deb
         run: |
+          mkdir -p build_deb/opt/vgca-signer
+          cp -r dist/vgca-signer/. build_deb/opt/vgca-signer/
+          chmod +x build_deb/opt/vgca-signer/vgca-signer
           chmod +x build_deb/usr/bin/vgca-signer
-          dpkg-deb --build build_deb vgca-signer.deb
+
+      - name: Build .deb
+        run: dpkg-deb --build build_deb vgca-signer.deb
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
