@@ -287,7 +287,20 @@ See LICENSE for more information.
 ---
 
 <div align="center">
+# 📦 Downloads
 
+Download the latest stable version from the GitHub Releases page.
+
+👉 Latest Releases:
+https://github.com/TranManhHungDNO/VGCA_XeOnline/releases
+
+### Available Packages
+
+| Package | Platform |
+|---------|----------|
+| .deb | Linux Mint / Ubuntu / Debian |
+| Source Code (.zip) | GitHub |
+| Source Code (.tar.gz) | GitHub |
 # VGCA XeOnline
 
 ### Bringing Digital Signatures to Linux
