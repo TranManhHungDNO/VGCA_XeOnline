@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build DEB Package
 
 on:
   push:
@@ -7,40 +7,45 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
         run: |
+          sudo apt update
+          sudo apt install -y dpkg-dev
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build exe
+      - name: Build app (Linux binary)
         run: |
-          pyinstaller --onedir --noconsole ^
-            --add-data "vgca.png;." ^
-            --add-data "bit4id.png;." ^
-            --add-data "safenet.png;." ^
-            --hidden-import fitz ^
-            --hidden-import PIL ^
-            --name vgca_sign_tool ^
+          pyinstaller --onedir --noconsole \
+            --add-data "vgca.png:." \
+            --name vgca-signer \
             main.py
+
+      - name: Build .deb package
+        run: |
+          chmod +x build_deb/usr/bin/vgca-signer
+          dpkg-deb --build build_deb vgca-signer.deb
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build
-          path: dist/
+          name: deb-package
+          path: vgca-signer.deb
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/**
+          files: vgca-signer.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
