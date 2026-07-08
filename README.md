@@ -6,185 +6,181 @@
 
 ### Linux Digital Signature Platform
 
-**PKCS#11 • Native Messaging • Chrome Extension • Open Source • Digital Transformation**
+Open-source digital signature platform for Linux based on PKCS#11.
+
+![Platform](https://img.shields.io/badge/Platform-Linux-success)
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Status](https://img.shields.io/badge/Status-Active%20Development-orange)
 
 ---
 
-*Nền tảng ký số dành cho hệ điều hành Linux và các OS nền tảng mã nguồn mở*
+**PKCS#11 • PDF Signing • USB Token • Native Messaging • Chrome Extension**
+
+*"Bringing Digital Signatures to Linux."*
 
 </div>
 
 ---
 
-# 📖 Giới thiệu
+# 📑 Table of Contents
 
-VGCA XeOnline là nền tảng ký số được phát triển dành riêng cho các hệ điều hành Linux và các nền tảng mã nguồn mở, hỗ trợ sử dụng USB Token thông qua chuẩn **PKCS#11**.
-
-Dự án hướng tới việc xây dựng một nền tảng ký số thống nhất, giúp các ứng dụng Desktop, Web Browser và các hệ thống nghiệp vụ có thể sử dụng chung một cơ chế ký số an toàn, hiện đại và dễ tích hợp.
-
-Không chỉ là một ứng dụng ký PDF, VGCA XeOnline được định hướng trở thành nền tảng trung gian (Digital Signature Platform) phục vụ cho các hệ thống quản lý văn bản điện tử, Cổng Dịch vụ công, Một cửa điện tử, Hệ thống điều hành tác nghiệp và các ứng dụng Web sử dụng chữ ký số.
-
----
-
-# 🎯 Sứ mệnh
-
-VGCA XeOnline được phát triển với mong muốn mở rộng khả năng sử dụng chữ ký số USB Token từ môi trường Windows sang các hệ điều hành mã nguồn mở như Linux Mint, Ubuntu, Debian và các bản phân phối Linux khác.
-
-Thông qua việc hỗ trợ chuẩn PKCS#11, Native Messaging và Chrome Extension, dự án góp phần xây dựng một môi trường làm việc số hiện đại trên nền tảng Linux, giúp các cơ quan, tổ chức, doanh nghiệp và người dùng có thêm lựa chọn triển khai các giải pháp ký số trên hệ điều hành mã nguồn mở được cấp phép hợp pháp.
-
----
-
-# 🌍 Tầm nhìn
-
-VGCA XeOnline hướng tới trở thành nền tảng ký số dành cho Linux có khả năng tương thích rộng rãi với các USB Token phổ biến tại Việt Nam, đồng thời cung cấp một kiến trúc mở để các ứng dụng Desktop và Web có thể dễ dàng tích hợp.
-
-Trong tương lai, dự án sẽ phát triển thành một hệ sinh thái ký số hoàn chỉnh bao gồm Desktop Application, Native Messaging Host, Chrome Extension, Driver Manager, Certificate Manager, PKCS#11 Engine và các API mở phục vụ chuyển đổi số.
+- Introduction
+- Why VGCA XeOnline?
+- Features
+- Screenshots
+- Supported USB Tokens
+- Architecture
+- Installation
+- Project Structure
+- Documentation
+- Roadmap
+- Contributing
+- License
 
 ---
 
-# 🇻🇳 Định hướng phát triển
+# 📖 Introduction
 
-VGCA XeOnline được xây dựng với định hướng góp phần thúc đẩy việc ứng dụng các hệ điều hành mã nguồn mở trong hoạt động của cơ quan nhà nước, doanh nghiệp và tổ chức.
+VGCA XeOnline is an open-source Digital Signature Platform for Linux.
 
-Dự án mong muốn tạo thêm lựa chọn triển khai trên các hệ điều hành nguồn mở có giấy phép hợp pháp, góp phần giảm chi phí đầu tư bản quyền phần mềm trong những trường hợp phù hợp, đồng thời vẫn bảo đảm khả năng tương thích với hạ tầng chứng thư số và USB Token đang được sử dụng tại Việt Nam.
+The project enables applications to digitally sign PDF documents using USB Tokens through the PKCS#11 standard.
 
-Định hướng phát triển của dự án phù hợp với tinh thần của **Công điện số 38/CĐ-TTg của Thủ tướng Chính phủ** về việc tập trung chỉ đạo thực hiện quyết liệt các giải pháp đấu tranh, ngăn chặn, xử lý hành vi xâm phạm quyền sở hữu trí tuệ; đồng thời khuyến khích sử dụng phần mềm hợp pháp, phần mềm mã nguồn mở và các giải pháp công nghệ được cấp phép theo đúng quy định của pháp luật.
+Instead of being only a PDF signing tool, VGCA XeOnline is designed as a reusable digital signature platform that can integrate with Desktop applications, Web Browsers, Native Messaging Hosts, Chrome Extensions and e-Government systems.
 
 ---
 
-# ✨ Chức năng
+# ⭐ Why VGCA XeOnline?
 
-- ✅ Ký số tài liệu PDF
-- ✅ Ký số hàng loạt (Batch Signing)
-- ✅ Đóng dấu hình ảnh PNG
-- ✅ Xem trước PDF
-- ✅ Drag & Drop
-- ✅ Quản lý chứng thư số
-- ✅ Hỗ trợ chuẩn PKCS#11
-- ✅ Hỗ trợ Bit4id
-- ✅ Hỗ trợ SafeNet
+✔ Native Linux Application
+
+✔ Open Source
+
+✔ PKCS#11 Standard
+
+✔ Multiple USB Token Support
+
+✔ PDF Digital Signing
+
+✔ Certificate Management
+
+✔ Browser Integration
+
+✔ Designed for Digital Transformation
+
+---
+
+# ✨ Features
+
+## PDF
+
+- ✅ PDF Digital Signing
+- ✅ Batch Signing
+- ✅ PNG Image Stamp
+- ✅ PDF Preview
+
+## USB Token
+
+- ✅ PKCS#11
+- ✅ Bit4id
+- ✅ SafeNet
+- 🚧 Multi USB Token
+
+## Browser Integration
+
 - 🚧 Native Messaging
 - 🚧 Chrome Extension
+
+## System
+
 - 🚧 Driver Detection
 - 🚧 Setup Wizard
 - 🚧 Health Check
-- 🚧 Multi USB Token
 
 ---
 
-# 📷 Giao diện
+# 📷 Screenshots
 
-## Môi trường thử nghiệm
+## Main Window
 
 ![](docs/screenshots/hinh1.png)
 
 ---
 
-## Ký số PDF
+## PDF Signing
 
 ![](docs/screenshots/hinh2.png)
 
 ---
 
-## Bit4id PKI Manager
-
-![](docs/screenshots/hinh3.png)
-
----
-
-## Thông tin chứng thư số
+## Certificate Information
 
 ![](docs/screenshots/hinh4.png)
 
 ---
 
-## SafeNet Authentication Client
-
-![](docs/screenshots/hinh5.png)
-
----
-
-## Hướng dẫn cài đặt Driver
+## Driver Setup
 
 ![](docs/screenshots/hinh6.png)
 
 ---
 
-# 🔐 USB Token tương thích
+# 🔐 Supported USB Tokens
 
-| USB Token | Driver | Nhận diện | Chứng thư | Ký số |
-|------------|---------|-----------|------------|--------|
-| Bit4id | ✅ | ✅ | ✅ | ✅ |
-| SafeNet eToken | ✅ | ✅ | ✅ | 🧪 |
-| SafeNet IDPrime | 🧪 | 🧪 | 🧪 | 🧪 |
-| VNPT-CA | 🚧 | 🚧 | 🚧 | 🚧 |
-| Viettel-CA | 🚧 | 🚧 | 🚧 | 🚧 |
-| FPT-CA | 🚧 | 🚧 | 🚧 | 🚧 |
-| NewCA | 🚧 | 🚧 | 🚧 | 🚧 |
-
----
-
-# 🏗 Kiến trúc hệ thống
-
-```
-                        Desktop Application
-                               │
-                               ▼
-                          GUI (Tkinter)
-                               │
-                               ▼
-                        Core Application
-                               │
-          ┌────────────────────┴────────────────────┐
-          ▼                                         ▼
-     PDF Engine                              PKCS#11 Engine
-          │                                         │
-          ▼                                         ▼
-   Certificate Manager                      Driver Manager
-          │                                         │
-          └────────────────────┬────────────────────┘
-                               ▼
-                          USB Token Layer
-                               │
-        ┌───────────────┬───────────────┬───────────────┐
-        ▼               ▼               ▼
-      Bit4id        SafeNet        Other Tokens
-                               │
-                               ▼
-                    Native Messaging Host
-                               │
-                               ▼
-                      Chrome Extension
-                               │
-                               ▼
-                  Web Applications / eGovernment
-```
+| Token | Detect | Certificate | Signing |
+|---------|:------:|:-----------:|:-------:|
+| Bit4id | ✅ | ✅ | ✅ |
+| SafeNet eToken | ✅ | ✅ | 🧪 |
+| SafeNet IDPrime | 🧪 | 🧪 | 🧪 |
+| VNPT-CA | 🚧 | 🚧 | 🚧 |
+| Viettel-CA | 🚧 | 🚧 | 🚧 |
+| FPT-CA | 🚧 | 🚧 | 🚧 |
+| NewCA | 🚧 | 🚧 | 🚧 |
 
 ---
 
-# 📂 Cấu trúc Project
+# 🏗 Architecture
 
 ```
-VGCA_XeOnline/
+Desktop Application
+        │
+GUI (Tkinter)
+        │
+Core Engine
+ ├── PDF Engine
+ ├── PKCS#11 Engine
+ ├── Certificate Manager
+ ├── Driver Manager
+ └── Diagnostics
 
-├── build_deb/
-├── chrome-extension/
-├── core/
-├── docs/
-│   ├── images/
-│   └── screenshots/
-├── gui/
-├── native/
-├── main.py
-├── native_host.py
-├── requirements.txt
-├── README.md
-└── vgca_xeonline.spec
+        │
+
+USB Token Layer
+
+        │
+
+Bit4id
+SafeNet
+Other Tokens
+
+        │
+
+Native Messaging
+
+        │
+
+Chrome Extension
+
+        │
+
+Web Applications
 ```
 
 ---
 
-# 🚀 Cài đặt
+# 🚀 Installation
+
+Clone repository
 
 ```bash
 git clone https://github.com/TranManhHungDNO/VGCA_XeOnline.git
@@ -202,82 +198,91 @@ python main.py
 
 ---
 
-# 🧪 Kiểm thử
+# 📂 Project Structure
 
-Đã kiểm thử trên:
+```
+VGCA_XeOnline
 
-- Linux Mint
-- Ubuntu
-- VMware Workstation
-- Bit4id PKI Manager
-- SafeNet Authentication Client
-- PDF Signing
-- PKCS#11
+├── chrome-extension
+├── core
+├── docs
+├── gui
+├── native
+├── build_deb
+├── main.py
+├── native_host.py
+├── requirements.txt
+├── README.md
+└── vgca_xeonline.spec
+```
 
 ---
 
-# 📚 Tài liệu
+# 📚 Documentation
 
-| Tài liệu | Mô tả |
-|----------|------|
-| docs/ARCHITECTURE.md | Kiến trúc hệ thống |
-| docs/ROADMAP.md | Kế hoạch phát triển |
-| docs/CHANGELOG.md | Nhật ký thay đổi |
-| docs/TEST_REPORT.md | Kết quả kiểm thử |
-| docs/BUGS.md | Danh sách lỗi |
-| docs/COMPATIBILITY.md | Khả năng tương thích USB Token |
-| docs/SETUP.md | Hướng dẫn cài đặt |
-| docs/PKCS11.md | PKCS#11 Developer Guide |
+| Document | Description |
+|-----------|-------------|
+| ARCHITECTURE.md | System Architecture |
+| ROADMAP.md | Development Roadmap |
+| CHANGELOG.md | Change History |
+| TEST_REPORT.md | Testing Report |
+| COMPATIBILITY.md | USB Token Compatibility |
+| PKCS11.md | PKCS#11 Guide |
+
+---
+
+# 🧪 Tested Environment
+
+| Platform | Status |
+|-----------|:------:|
+| Linux Mint | ✅ |
+| Ubuntu | ✅ |
+| Debian | 🧪 |
+| VMware | ✅ |
 
 ---
 
 # 🗺 Roadmap
 
-### Version 0.9
+## Completed
 
-- Linux Baseline
-- PDF Signing
-- Bit4id
-- SafeNet
+- [x] Linux Desktop GUI
+- [x] PDF Signing
+- [x] PKCS#11 Engine
+- [x] Bit4id Support
+- [x] SafeNet Support
 
-### Version 0.91
+## In Progress
 
-- SafeNet Compatibility
+- [ ] Multiple USB Tokens
+- [ ] Driver Detection
+- [ ] Setup Wizard
+- [ ] Native Messaging
+- [ ] Chrome Extension
+- [ ] Health Check
 
-### Version 0.92
+## Future
 
-- Multiple USB Token
-
-### Version 0.95
-
-- Driver Detection
-- PKCS#11 Refactoring
-- Setup Wizard
-
-### Version 0.96
-
-- Native Messaging
-- Chrome Extension
-- Health Check
-
-### Version 1.0
-[![Latest Release](https://img.shields.io/github/v/release/TranManhHungDNO/VGCA_XeOnline)](https://github.com/TranManhHungDNO/VGCA_XeOnline/releases/latest)
-- Stable Release
-- Multi Platform
-- Open API
-- Linux Digital Signature Platform
+- [ ] Firefox Extension
+- [ ] REST API
+- [ ] Windows Version
+- [ ] macOS Version
 
 ---
 
-# 🤝 Đóng góp
+# 🤝 Contributing
 
-Hiện tại dự án đang trong giai đoạn phát triển nội bộ. Mọi ý kiến đóng góp, phản hồi và đề xuất cải tiến đều được ghi nhận để hoàn thiện nền tảng trong các phiên bản tiếp theo.
+Contributions, ideas and bug reports are welcome.
+
+Please open an Issue or submit a Pull Request.
 
 ---
 
-# 📄 Giấy phép
+# 📄 License
 
-Dự án hiện được phát triển dưới hình thức **Private Repository**.
+MIT License
+
+See LICENSE for more information.
 
 ---
 
@@ -286,8 +291,6 @@ Dự án hiện được phát triển dưới hình thức **Private Repository
 # VGCA XeOnline
 
 ### Bringing Digital Signatures to Linux
-
-**"Mang chữ ký số đến với hệ điều hành mã nguồn mở."**
 
 Made with ❤️ in Vietnam 🇻🇳
 
